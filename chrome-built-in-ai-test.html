@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome 內建 AI 測試</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        body {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .hint {
+            opacity: 0.8;
+            margin-bottom: 24px;
+        }
+
+        .panel {
+            border: 1px solid rgba(127, 127, 127, 0.35);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            box-sizing: border-box;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(127, 127, 127, 0.4);
+            font: inherit;
+            resize: vertical;
+        }
+
+        button {
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: 1px solid rgba(127, 127, 127, 0.4);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 120px;
+            margin: 0;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .ok {
+            color: #16803a;
+        }
+
+        .warn {
+            color: #b36b00;
+        }
+
+        .error {
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chrome 內建 AI 測試</h1>
+
+    <p class="hint">
+        可直接用 file:// 開啟測試。若出現 Permission Policy 錯誤，請確認頁面不是被預覽工具包在 iframe 中。
+    </p>
+
+    <section class="panel">
+        <h2>環境資訊</h2>
+        <pre id="environment">讀取中...</pre>
+    </section>
+
+    <section class="panel">
+        <h2>Prompt</h2>
+
+        <textarea id="promptInput">請使用繁體中文，完整解釋 C# async 與 await 的運作方式，並提供一個簡單範例。請直接輸出完整純文字，不要輸出 JSON 或字串陣列。</textarea>
+
+        <div class="actions">
+            <button id="runButton" type="button">開始測試</button>
+            <button id="clearButton" type="button">清除結果</button>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>執行結果</h2>
+        <pre id="output">尚未執行。</pre>
+    </section>
+
+    <script>
+        const environment = document.getElementById("environment");
+        const output = document.getElementById("output");
+        const promptInput = document.getElementById("promptInput");
+        const runButton = document.getElementById("runButton");
+        const clearButton = document.getElementById("clearButton");
+
+        showEnvironment();
+
+        runButton.addEventListener("click", runTest);
+
+        clearButton.addEventListener("click", () => {
+            output.textContent = "";
+        });
+
+        function showEnvironment() {
+            const policy =
+                document.permissionsPolicy ??
+                document.featurePolicy;
+
+            let permissionAllowed = "unknown";
+
+            try {
+                permissionAllowed =
+                    policy?.allowsFeature?.("language-model") ??
+                    "API unavailable";
+            } catch (error) {
+                permissionAllowed =
+                    `檢查失敗：${error?.message ?? String(error)}`;
+            }
+
+            environment.textContent = [
+                `網址：${location.href}`,
+                `協定：${location.protocol}`,
+                `Origin：${location.origin}`,
+                `安全內容：${window.isSecureContext}`,
+                `頂層頁面：${window.self === window.top}`,
+                `LanguageModel 存在：${"LanguageModel" in globalThis}`,
+                `LanguageModel 型別：${typeof globalThis.LanguageModel}`,
+                `Permission Policy：${permissionAllowed}`,
+                `User Agent：${navigator.userAgent}`
+            ].join("\n");
+        }
+
+        async function runTest() {
+            runButton.disabled = true;
+            output.textContent = "";
+
+            let session = null;
+
+            try {
+                if (!("LanguageModel" in globalThis)) {
+                    throw new Error(
+                        "此頁面沒有 LanguageModel API。請確認 Chrome 版本、功能旗標、硬體條件與模型狀態。"
+                    );
+                }
+
+                const policy =
+                    document.permissionsPolicy ??
+                    document.featurePolicy;
+
+                const isTopLevel =
+                    window.self === window.top;
+
+                const permissionAllowed =
+                    policy?.allowsFeature?.("language-model");
+
+                output.textContent += [
+                    `頂層頁面：${isTopLevel}`,
+                    `Permission Policy：${permissionAllowed ?? "unknown"}`,
+                    ""
+                ].join("\n");
+
+                try {
+                    const availability =
+                        await LanguageModel.availability();
+
+                    output.textContent +=
+                        `availability：${availability}\n`;
+                } catch (availabilityError) {
+                    output.textContent +=
+                        `availability 檢查失敗：${formatError(availabilityError)}\n`;
+                }
+
+                output.textContent += "正在建立模型工作階段...\n";
+
+                session = await LanguageModel.create({
+                    monitor(monitor) {
+                        monitor.addEventListener(
+                            "downloadprogress",
+                            event => {
+                                const percent =
+                                    Math.round(event.loaded * 100);
+
+                                output.textContent =
+                                    `模型下載中：${percent}%`;
+                            }
+                        );
+                    }
+                });
+
+                const prompt = promptInput.value.trim();
+
+                if (!prompt) {
+                    throw new Error("請先輸入 Prompt。");
+                }
+
+                output.textContent =
+                    "模型正在產生完整文字...\n\n";
+
+                const result =
+                    await session.prompt(prompt);
+
+                const fullText =
+                    normalizeResult(result);
+
+                output.textContent = fullText;
+
+                console.log("原始結果：", result);
+                console.log("原始型別：", typeof result);
+                console.log("完整文字：", fullText);
+                console.log("完整文字型別：", typeof fullText);
+            } catch (error) {
+                console.error(error);
+
+                output.textContent = [
+                    "呼叫失敗",
+                    "",
+                    `名稱：${error?.name ?? "UnknownError"}`,
+                    `訊息：${error?.message ?? String(error)}`,
+                    `完整內容：${formatError(error)}`,
+                    "",
+                    getFriendlyHint(error)
+                ].join("\n");
+            } finally {
+                try {
+                    session?.destroy();
+                } catch (destroyError) {
+                    console.warn(
+                        "Session destroy 失敗：",
+                        destroyError
+                    );
+                }
+
+                runButton.disabled = false;
+                showEnvironment();
+            }
+        }
+
+        function normalizeResult(value) {
+            if (value == null) {
+                return "";
+            }
+
+            if (typeof value === "string") {
+                return value;
+            }
+
+            if (Array.isArray(value)) {
+                return value
+                    .map(normalizeResult)
+                    .join("");
+            }
+
+            if (typeof value.text === "string") {
+                return value.text;
+            }
+
+            if (typeof value.content === "string") {
+                return value.content;
+            }
+
+            if (Array.isArray(value.content)) {
+                return value.content
+                    .map(normalizeResult)
+                    .join("");
+            }
+
+            try {
+                return JSON.stringify(value, null, 2);
+            } catch {
+                return String(value);
+            }
+        }
+
+        function formatError(error) {
+            if (error == null) {
+                return "未知錯誤";
+            }
+
+            if (error instanceof Error) {
+                return [
+                    error.name,
+                    error.message
+                ]
+                    .filter(Boolean)
+                    .join(": ");
+            }
+
+            try {
+                return JSON.stringify(error, null, 2);
+            } catch {
+                return String(error);
+            }
+        }
+
+        function getFriendlyHint(error) {
+            const name =
+                error?.name ?? "";
+
+            const message =
+                error?.message ?? "";
+
+            if (
+                name === "NotAllowedError" ||
+                message.includes("Permission Policy")
+            ) {
+                return [
+                    "判斷：目前頁面可能位於未授權的 iframe。",
+                    "處理：請直接在 Chrome 分頁開啟此 HTML，",
+                    "不要透過線上預覽框、Canvas 預覽或 iframe 執行。",
+                    "若是自己的 iframe，外層需加 allow=\"language-model\"。"
+                ].join("\n");
+            }
+
+            if (
+                location.protocol === "file:"
+            ) {
+                return [
+                    "目前是 file://。",
+                    "若直接開啟仍失敗，可改用 localhost 測試：",
+                    "python -m http.server 8080",
+                    "再開啟 http://localhost:8080/"
+                ].join("\n");
+            }
+
+            return "請查看 chrome://on-device-internals 與 Console 的完整錯誤。";
+        }
+    </script>
+</body>
+</html>
