@@ -3,352 +3,491 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chrome 內建 AI 測試</title>
+    <title>Gemini Nano Chat</title>
     <style>
         :root {
-            color-scheme: light dark;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --bg-primary: #212121;
+            --bg-secondary: #2f2f2f;
+            --bg-input: #404040;
+            --text-primary: #ececec;
+            --text-secondary: #b4b4b4;
+            --accent: #ffffff;
+            --user-bubble: #2f2f2f;
+            --ai-bubble: #212121;
+            --border: #424242;
+            --radius: 24px;
+            --radius-sm: 16px;
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            max-width: 960px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Header ── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .header h1 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            transition: background 0.15s, color 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .icon-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        /* ── Chat Area ── */
+        .chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 0;
+            scroll-behavior: smooth;
+        }
+        .chat-inner {
+            max-width: 768px;
             margin: 0 auto;
-            padding: 32px 20px 48px;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .welcome {
+            text-align: center;
+            margin-top: 12vh;
+            padding: 0 20px;
+        }
+        .welcome h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .welcome p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
             line-height: 1.6;
         }
 
-        h1 {
-            margin-bottom: 8px;
-        }
-
-        .hint {
-            opacity: 0.8;
-            margin-bottom: 24px;
-        }
-
-        .panel {
-            border: 1px solid rgba(127, 127, 127, 0.35);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        textarea {
-            width: 100%;
-            min-height: 150px;
-            box-sizing: border-box;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid rgba(127, 127, 127, 0.4);
-            font: inherit;
-            resize: vertical;
-        }
-
-        button {
-            padding: 10px 18px;
-            border-radius: 8px;
-            border: 1px solid rgba(127, 127, 127, 0.4);
-            font: inherit;
-            cursor: pointer;
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: wait;
-        }
-
-        pre {
-            white-space: pre-wrap;
-            word-break: break-word;
-            min-height: 120px;
-            margin: 0;
-        }
-
-        .actions {
+        .msg-row {
             display: flex;
             gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 12px;
+            padding: 18px 24px;
+        }
+        .msg-row.user {
+            background: var(--bg-secondary);
+        }
+        .msg-row.ai {
+            background: var(--bg-primary);
+        }
+        .avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .msg-content {
+            flex: 1;
+            min-width: 0;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .msg-content p {
+            margin-bottom: 12px;
+        }
+        .msg-content p:last-child {
+            margin-bottom: 0;
         }
 
-        .ok {
-            color: #16803a;
+        /* ── Input ── */
+        .input-area {
+            flex-shrink: 0;
+            padding: 0 20px 20px;
+        }
+        .input-inner {
+            max-width: 768px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 6px 6px 6px 18px;
+            transition: border-color 0.15s;
+        }
+        .input-wrapper:focus-within {
+            border-color: #888;
+        }
+        .input-wrapper textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font: inherit;
+            font-size: 0.95rem;
+            resize: none;
+            max-height: 200px;
+            line-height: 1.5;
+            padding: 8px 0;
+        }
+        .input-wrapper textarea::placeholder {
+            color: var(--text-secondary);
+        }
+        .send-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-left: 4px;
+            transition: opacity 0.15s;
+        }
+        .send-btn:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+        .send-btn svg {
+            width: 16px;
+            height: 16px;
         }
 
-        .warn {
-            color: #b36b00;
+        .model-badge {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 8px 0 0;
         }
 
-        .error {
-            color: #c62828;
+        /* ── Status bar ── */
+        .status-bar {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 6px 20px;
+            flex-shrink: 0;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+        .status-dot.ready {
+            background: #4caf50;
+        }
+        .status-dot.error {
+            background: #f44336;
+        }
+        .status-dot.busy {
+            background: #ff9800;
         }
     </style>
 </head>
 <body>
-    <h1>Chrome 內建 AI 測試</h1>
 
-    <p class="hint">
-        可直接用 file:// 開啟測試。若出現 Permission Policy 錯誤，請確認頁面不是被預覽工具包在 iframe 中。
-    </p>
-
-    <section class="panel">
-        <h2>環境資訊</h2>
-        <pre id="environment">讀取中...</pre>
-    </section>
-
-    <section class="panel">
-        <h2>Prompt</h2>
-
-        <textarea id="promptInput">請使用繁體中文，完整解釋 C# async 與 await 的運作方式，並提供一個簡單範例。請直接輸出完整純文字，不要輸出 JSON 或字串陣列。</textarea>
-
-        <div class="actions">
-            <button id="runButton" type="button">開始測試</button>
-            <button id="clearButton" type="button">清除結果</button>
+    <div class="header">
+        <h1>Gemini Nano</h1>
+        <div class="header-actions">
+            <button class="icon-btn" id="clearBtn" title="清除對話">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14"/></svg>
+                清除
+            </button>
         </div>
-    </section>
+    </div>
 
-    <section class="panel">
-        <h2>執行結果</h2>
-        <pre id="output">尚未執行。</pre>
-    </section>
+    <div class="chat" id="chat">
+        <div class="chat-inner" id="chatInner">
+            <div class="welcome" id="welcome">
+                <h2>今天我能幫你什麼？</h2>
+                <p>使用 Chrome 內建 Gemini Nano 離線 AI</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <div class="input-inner">
+            <div class="input-wrapper">
+                <textarea
+                    id="promptInput"
+                    rows="1"
+                    placeholder="輸入訊息..."
+                    oninput="autoResize(this)"
+                    onkeydown="handleKeyDown(event)"
+                ></textarea>
+                <button class="send-btn" id="sendBtn" disabled title="送出">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </div>
+            <div class="model-badge" id="modelBadge">載入中…</div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span><span class="status-dot" id="statusDot"></span><span id="statusText">檢查環境…</span></span>
+        <span id="envInfo"></span>
+    </div>
 
     <script>
-        const environment = document.getElementById("environment");
-        const output = document.getElementById("output");
+        const chat = document.getElementById("chat");
+        const chatInner = document.getElementById("chatInner");
+        const welcome = document.getElementById("welcome");
         const promptInput = document.getElementById("promptInput");
-        const runButton = document.getElementById("runButton");
-        const clearButton = document.getElementById("clearButton");
+        const sendBtn = document.getElementById("sendBtn");
+        const clearBtn = document.getElementById("clearBtn");
+        const modelBadge = document.getElementById("modelBadge");
+        const statusDot = document.getElementById("statusDot");
+        const statusText = document.getElementById("statusText");
+        const envInfo = document.getElementById("envInfo");
 
-        showEnvironment();
+        let session = null;
+        let isReady = false;
+        let isGenerating = false;
+        let abortController = null;
+        let currentAiContent = null;
 
-        runButton.addEventListener("click", runTest);
+        init();
 
-        clearButton.addEventListener("click", () => {
-            output.textContent = "";
-        });
+        async function init() {
+            setStatus("busy", "檢查 API 可用性…");
 
-        function showEnvironment() {
-            const policy =
-                document.permissionsPolicy ??
-                document.featurePolicy;
-
-            let permissionAllowed = "unknown";
-
-            try {
-                permissionAllowed =
-                    policy?.allowsFeature?.("language-model") ??
-                    "API unavailable";
-            } catch (error) {
-                permissionAllowed =
-                    `檢查失敗：${error?.message ?? String(error)}`;
+            const available = checkEnvironment();
+            if (!available) {
+                setStatus("error", "API 不可用");
+                modelBadge.textContent = "Gemini Nano 不可用";
+                return;
             }
 
-            environment.textContent = [
-                `網址：${location.href}`,
-                `協定：${location.protocol}`,
-                `Origin：${location.origin}`,
-                `安全內容：${window.isSecureContext}`,
-                `頂層頁面：${window.self === window.top}`,
-                `LanguageModel 存在：${"LanguageModel" in globalThis}`,
-                `LanguageModel 型別：${typeof globalThis.LanguageModel}`,
-                `Permission Policy：${permissionAllowed}`,
-                `User Agent：${navigator.userAgent}`
-            ].join("\n");
-        }
-
-        async function runTest() {
-            runButton.disabled = true;
-            output.textContent = "";
-
-            let session = null;
-
+            setStatus("busy", "建立模型工作階段…");
             try {
-                if (!("LanguageModel" in globalThis)) {
-                    throw new Error(
-                        "此頁面沒有 LanguageModel API。請確認 Chrome 版本、功能旗標、硬體條件與模型狀態。"
-                    );
-                }
-
-                const policy =
-                    document.permissionsPolicy ??
-                    document.featurePolicy;
-
-                const isTopLevel =
-                    window.self === window.top;
-
-                const permissionAllowed =
-                    policy?.allowsFeature?.("language-model");
-
-                output.textContent += [
-                    `頂層頁面：${isTopLevel}`,
-                    `Permission Policy：${permissionAllowed ?? "unknown"}`,
-                    ""
-                ].join("\n");
-
-                try {
-                    const availability =
-                        await LanguageModel.availability();
-
-                    output.textContent +=
-                        `availability：${availability}\n`;
-                } catch (availabilityError) {
-                    output.textContent +=
-                        `availability 檢查失敗：${formatError(availabilityError)}\n`;
-                }
-
-                output.textContent += "正在建立模型工作階段...\n";
-
                 session = await LanguageModel.create({
-                    monitor(monitor) {
-                        monitor.addEventListener(
-                            "downloadprogress",
-                            event => {
-                                const percent =
-                                    Math.round(event.loaded * 100);
-
-                                output.textContent =
-                                    `模型下載中：${percent}%`;
-                            }
-                        );
+                    monitor(m) {
+                        m.addEventListener("downloadprogress", (e) => {
+                            const pct = Math.round(e.loaded * 100);
+                            setStatus("busy", `下載模型中…${pct}%`);
+                        });
                     }
                 });
-
-                const prompt = promptInput.value.trim();
-
-                if (!prompt) {
-                    throw new Error("請先輸入 Prompt。");
-                }
-
-                output.textContent =
-                    "模型正在產生完整文字...\n\n";
-
-                const result =
-                    await session.prompt(prompt);
-
-                const fullText =
-                    normalizeResult(result);
-
-                output.textContent = fullText;
-
-                console.log("原始結果：", result);
-                console.log("原始型別：", typeof result);
-                console.log("完整文字：", fullText);
-                console.log("完整文字型別：", typeof fullText);
-            } catch (error) {
-                console.error(error);
-
-                output.textContent = [
-                    "呼叫失敗",
-                    "",
-                    `名稱：${error?.name ?? "UnknownError"}`,
-                    `訊息：${error?.message ?? String(error)}`,
-                    `完整內容：${formatError(error)}`,
-                    "",
-                    getFriendlyHint(error)
-                ].join("\n");
-            } finally {
-                try {
-                    session?.destroy();
-                } catch (destroyError) {
-                    console.warn(
-                        "Session destroy 失敗：",
-                        destroyError
-                    );
-                }
-
-                runButton.disabled = false;
-                showEnvironment();
+                isReady = true;
+                setStatus("ready", "就緒");
+                modelBadge.textContent = "Gemini Nano · 離線可用";
+            } catch (err) {
+                setStatus("error", "建立失敗");
+                modelBadge.textContent = "模型初始化失敗";
+                console.error(err);
             }
+        }
+
+        function checkEnvironment() {
+            if (!("LanguageModel" in globalThis)) {
+                envInfo.textContent = "LanguageModel 不存在";
+                return false;
+            }
+
+            const policy = document.permissionsPolicy ?? document.featurePolicy;
+            try {
+                const allowed = policy?.allowsFeature?.("language-model");
+                if (allowed === false) {
+                    envInfo.textContent = "Permission Policy 拒絕";
+                    return false;
+                }
+            } catch {}
+
+            envInfo.textContent = window.isSecureContext ? "安全上下文" : "非安全上下文";
+            return true;
+        }
+
+        function setStatus(state, text) {
+            statusDot.className = `status-dot ${state}`;
+            statusText.textContent = text;
+        }
+
+        sendBtn.addEventListener("click", sendMessage);
+        clearBtn.addEventListener("click", clearChat);
+
+        function handleKeyDown(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function autoResize(el) {
+            el.style.height = "auto";
+            el.style.height = Math.min(el.scrollHeight, 200) + "px";
+            sendBtn.disabled = el.value.trim().length === 0 || !isReady || isGenerating;
+        }
+
+        promptInput.addEventListener("input", () => autoResize(promptInput));
+
+        async function sendMessage() {
+            const text = promptInput.value.trim();
+            if (!text || !isReady) return;
+
+            // 如果正在生成，中斷當前生成
+            if (isGenerating) {
+                abortGeneration();
+                // 等一幀讓 UI 更新後再送新訊息
+                await new Promise(r => requestAnimationFrame(r));
+            }
+
+            if (welcome) welcome.remove();
+
+            const userMsg = addMessage("user", text);
+            promptInput.value = "";
+            promptInput.style.height = "auto";
+
+            const aiMsg = addMessage("ai", "");
+            currentAiContent = aiMsg.querySelector(".msg-content");
+
+            isGenerating = true;
+            sendBtn.disabled = true;
+            setStatus("busy", "生成中…");
+
+            abortController = new AbortController();
+
+            try {
+                const stream = session.promptStreaming(text, {
+                    signal: abortController.signal
+                });
+                let full = "";
+
+                for await (const chunk of stream) {
+                    full += normalizeChunk(chunk);
+                    currentAiContent.textContent = full;
+                    scrollBottom();
+                }
+
+                if (!full) {
+                    const result = await session.prompt(text);
+                    full = normalizeResult(result);
+                    currentAiContent.textContent = full;
+                }
+
+            } catch (err) {
+                if (err?.name === "AbortError" || abortController?.signal?.aborted) {
+                    currentAiContent.textContent = full || "（已中斷）";
+                } else {
+                    currentAiContent.textContent = `錯誤：${err?.message ?? String(err)}`;
+                    setStatus("error", "生成失敗");
+                    console.error(err);
+                }
+            } finally {
+                isGenerating = false;
+                abortController = null;
+                currentAiContent = null;
+                setStatus("ready", "就緒");
+                sendBtn.disabled = promptInput.value.trim().length === 0;
+                scrollBottom();
+            }
+        }
+
+        function abortGeneration() {
+            if (abortController) {
+                abortController.abort();
+            }
+        }
+
+        function addMessage(role, text) {
+            const row = document.createElement("div");
+            row.className = `msg-row ${role}`;
+
+            const avatar = document.createElement("div");
+            avatar.className = "avatar";
+            avatar.textContent = role === "user" ? "🧑" : "✦";
+
+            const content = document.createElement("div");
+            content.className = "msg-content";
+            content.textContent = text;
+
+            row.appendChild(avatar);
+            row.appendChild(content);
+            chatInner.appendChild(row);
+            scrollBottom();
+            return row;
+        }
+
+        function scrollBottom() {
+            requestAnimationFrame(() => {
+                chat.scrollTop = chat.scrollHeight;
+            });
+        }
+
+        function clearChat() {
+            const msgs = chatInner.querySelectorAll(".msg-row");
+            msgs.forEach((m) => m.remove());
+            if (!chatInner.querySelector(".welcome") && !chatInner.querySelector(".msg-row")) {
+                const w = document.createElement("div");
+                w.className = "welcome";
+                w.id = "welcome";
+                w.innerHTML = "<h2>今天我能幫你什麼？</h2><p>使用 Chrome 內建 Gemini Nano 離線 AI</p>";
+                chatInner.appendChild(w);
+            }
+        }
+
+        function normalizeChunk(value) {
+            if (value == null) return "";
+            if (typeof value === "string") return value;
+            if (Array.isArray(value)) return value.map(normalizeChunk).join("");
+            if (typeof value.text === "string") return value.text;
+            if (typeof value.content === "string") return value.content;
+            if (Array.isArray(value.content)) return value.content.map(normalizeChunk).join("");
+            return String(value);
         }
 
         function normalizeResult(value) {
-            if (value == null) {
-                return "";
-            }
-
-            if (typeof value === "string") {
-                return value;
-            }
-
-            if (Array.isArray(value)) {
-                return value
-                    .map(normalizeResult)
-                    .join("");
-            }
-
-            if (typeof value.text === "string") {
-                return value.text;
-            }
-
-            if (typeof value.content === "string") {
-                return value.content;
-            }
-
-            if (Array.isArray(value.content)) {
-                return value.content
-                    .map(normalizeResult)
-                    .join("");
-            }
-
-            try {
-                return JSON.stringify(value, null, 2);
-            } catch {
-                return String(value);
-            }
-        }
-
-        function formatError(error) {
-            if (error == null) {
-                return "未知錯誤";
-            }
-
-            if (error instanceof Error) {
-                return [
-                    error.name,
-                    error.message
-                ]
-                    .filter(Boolean)
-                    .join(": ");
-            }
-
-            try {
-                return JSON.stringify(error, null, 2);
-            } catch {
-                return String(error);
-            }
-        }
-
-        function getFriendlyHint(error) {
-            const name =
-                error?.name ?? "";
-
-            const message =
-                error?.message ?? "";
-
-            if (
-                name === "NotAllowedError" ||
-                message.includes("Permission Policy")
-            ) {
-                return [
-                    "判斷：目前頁面可能位於未授權的 iframe。",
-                    "處理：請直接在 Chrome 分頁開啟此 HTML，",
-                    "不要透過線上預覽框、Canvas 預覽或 iframe 執行。",
-                    "若是自己的 iframe，外層需加 allow=\"language-model\"。"
-                ].join("\n");
-            }
-
-            if (
-                location.protocol === "file:"
-            ) {
-                return [
-                    "目前是 file://。",
-                    "若直接開啟仍失敗，可改用 localhost 測試：",
-                    "python -m http.server 8080",
-                    "再開啟 http://localhost:8080/"
-                ].join("\n");
-            }
-
-            return "請查看 chrome://on-device-internals 與 Console 的完整錯誤。";
+            return normalizeChunk(value);
         }
     </script>
 </body>
