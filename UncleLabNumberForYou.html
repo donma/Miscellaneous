@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101d22">
+  <meta name="description" content="輸入國曆生日與出生時間，使用十天干與十神的研究模型，探索個人宜用與避用數字。完全在瀏覽器本機計算。">
+  <title>UncleLab｜個人宜忌數字</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0c181d;--panel:#12232a;--panel2:#162a31;--line:#29434a;--muted:#98b0b1;--ink:#eaf2ed;--gold:#dbb77b;--good:#8cdeb0;--bad:#f1a19e;--font:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 85% 0%,#25433e 0,transparent 38%),radial-gradient(circle at 0% 50%,#1e302b 0,transparent 38%),var(--bg);font-family:var(--font);color:var(--ink);line-height:1.65;min-height:100vh}
+    .shell{max-width:1080px;margin:auto;padding:32px 22px 72px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:64px}.brand{display:flex;align-items:center;gap:11px;font-weight:750;letter-spacing:.14em;font-size:15px}.brandmark{display:grid;place-items:center;width:36px;height:36px;border:1px solid #b8996f;color:var(--gold);border-radius:50%;font-family:serif;font-size:22px}.version{font-size:11px;border:1px solid var(--line);color:var(--muted);padding:5px 10px;border-radius:99px;letter-spacing:.06em}
+    .hero{text-align:center;max-width:700px;margin:0 auto 44px}.eyebrow{font-size:12px;letter-spacing:.27em;color:var(--gold);font-weight:750}.hero h1{font-size:clamp(36px,5vw,64px);font-family:Georgia,"Noto Serif TC","Songti TC",serif;line-height:1.23;letter-spacing:.07em;font-weight:600;margin:20px 0}.hero h1 em{color:var(--gold);font-style:normal}.hero p{margin:0 auto;color:#b7c8c6;max-width:560px;font-size:15px}
+    .frame{display:grid;grid-template-columns:minmax(310px,.88fr) minmax(0,1.12fr);gap:20px;align-items:start}.card{background:linear-gradient(150deg,rgba(25,46,52,.97),rgba(14,31,38,.97));border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 60px #050d1138}.form-card{padding:32px}.kicker{color:var(--gold);font-size:12px;letter-spacing:.19em}.section-title{font-size:23px;font-family:Georgia,"Noto Serif TC","Songti TC",serif;letter-spacing:.035em;margin:7px 0 8px}.lead{font-size:13px;color:var(--muted);margin:0 0 26px}.field{margin-top:20px}.field label{display:block;font-size:13px;font-weight:650;margin-bottom:9px}.field input,.field select{width:100%;appearance:none;border:1px solid #426066;background:#0e2026;border-radius:11px;padding:13px 14px;color:var(--ink);font:inherit;font-size:15px;min-height:49px;outline:none}.field input:focus,.field select:focus{border-color:var(--gold);box-shadow:0 0 0 3px #dbb77b23}.field input::-webkit-calendar-picker-indicator{filter:invert(.8)}.minor{font-size:12px;color:var(--muted);margin-top:8px}.hint{font-size:12px;color:#b7c9c9;margin-top:16px;display:flex;align-items:flex-start;gap:8px}.hint span:first-child{color:var(--gold)}.submit{width:100%;border:0;background:linear-gradient(120deg,#eed5a2,#d5a865);color:#15252b;font-size:16px;font-weight:800;cursor:pointer;padding:15px 16px;border-radius:12px;margin-top:26px;min-height:52px;transition:transform .2s,filter .2s}.submit:hover{filter:brightness(1.06);transform:translateY(-1px)}.submit:focus-visible,.ghost:focus-visible{outline:3px solid #fff;outline-offset:3px}
+    .result-card{padding:32px;min-height:510px}.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:420px;text-align:center;color:var(--muted)}.seal{display:grid;place-items:center;border:1px solid #677a71;border-radius:50%;width:120px;height:120px;box-shadow:0 0 0 12px #a5ba9b0b,0 0 0 24px #a5ba9b06;margin-bottom:25px;color:#d9c199;font-family:"Noto Serif TC",serif;font-size:39px}.placeholder h2{font-size:21px;color:var(--ink);font-weight:550;margin:0 0 8px}.placeholder p{font-size:14px;max-width:270px;margin:0}
+    .hidden{display:none!important}.summary{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding-bottom:22px;border-bottom:1px solid var(--line)}.summary small{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.pill{border:1px solid #4a676a;background:#21383d;padding:6px 12px;border-radius:99px;color:var(--gold);font-size:12px;white-space:nowrap}.day-stem{font-size:30px;font-family:serif;color:var(--gold);font-weight:700;margin-right:6px}.group{margin-top:23px}.group-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.group h3{font-size:15px;letter-spacing:.13em;margin:0 0 12px}.group-head small{color:var(--muted);font-size:12px}.digits{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.digit{border-radius:12px;min-height:82px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px solid}.digit strong{font-size:31px;font-weight:750;line-height:1.1}.digit small{font-size:11px;white-space:nowrap}.digit.good{background:#17382f;border-color:#356752;color:var(--good)}.digit.bad{background:#382a2b;border-color:#715251;color:var(--bad)}.digit.neutral{background:#213239;border-color:#476069;color:#c6d4d4}.group.good-title h3{color:var(--good)}.group.bad-title h3{color:var(--bad)}.details{margin-top:25px;padding-top:18px;border-top:1px solid var(--line)}.details summary{color:var(--gold);cursor:pointer;font-size:13px;font-weight:700}.detail-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}.detail-item{border:1px solid #30494c;background:#14282c;padding:9px 11px;border-radius:9px;font-size:12px;display:flex;justify-content:space-between;gap:6px}.detail-item b{font-weight:600}.actions{display:flex;gap:10px;margin-top:20px}.ghost{flex:1;border:1px solid #55716e;color:#d8e8dc;background:transparent;padding:11px 10px;border-radius:10px;font-weight:650;cursor:pointer;font-size:13px}.ghost:hover{background:#29413f}.tiny{font-size:12px;color:var(--muted);margin-top:14px}.error{color:#ffb0a9;min-height:1.5em;font-size:13px;margin:12px 0 0}
+    .below{margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:20px}.info{padding:25px 28px}.info h2{font-size:16px;margin:0 0 10px;color:#e5d0aa}.info p,.info li{font-size:13px;color:#b1c5c2;margin:7px 0}.info ul{padding-left:20px;margin:8px 0}.footer{margin-top:37px;padding-top:20px;border-top:1px solid #294047;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:#8ba6a5;font-size:12px}.footer a{color:#dac59b;text-decoration:none}
+    @media(max-width:780px){.shell{padding:22px 14px 44px}.top{margin-bottom:38px}.frame,.below{grid-template-columns:1fr}.hero{margin-bottom:30px}.form-card,.result-card{padding:24px}.result-card{min-height:0}.placeholder{min-height:310px}.hero h1{font-size:42px}.digits{grid-template-columns:repeat(4,minmax(0,1fr))}}
+    @media(max-width:380px){.digits{gap:6px}.digit{min-height:72px}.digit strong{font-size:26px}.digit small{font-size:10px}.form-card,.result-card{padding:18px}.hero h1{font-size:35px}.detail-grid{grid-template-columns:1fr}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top"><div class="brand"><span class="brandmark" aria-hidden="true">命</span><span>UncleLab</span></div><span class="version">研究模型 v0.1</span></header>
+    <section class="hero"><div class="eyebrow">BIRTH DATE · TEN GODS · NUMEROLOGY</div><h1>生辰有數<br><em>知宜識忌</em></h1><p>輸入西元國曆出生日期與時間，依十天干、日主與十神關係，計算個人宜用及避用的數字。</p></section>
+    <div class="frame">
+      <section class="card form-card" aria-labelledby="form-title">
+        <div class="kicker">01 / 出生資料</div><h2 class="section-title" id="form-title">輸入生辰</h2><p class="lead">所有計算在你的瀏覽器完成，不需登入，也不會上傳生辰資料。</p>
+        <form id="birthForm" novalidate>
+          <div class="field"><label for="birthDate">國曆出生日期（西元年）</label><input id="birthDate" name="birthDate" type="date" min="1900-01-01" max="2100-12-31" required><div class="minor">使用西元國曆，不是農曆生日。</div></div>
+          <div class="field"><label for="birthTime">出生時間（24 小時制）</label><input id="birthTime" name="birthTime" type="time" required value="12:00"><div class="minor">例如午時可填 12:00；申時可填 16:00。</div></div>
+          <div class="field"><label for="boundary">子時換日規則</label><select id="boundary"><option value="23" selected>23:00 換日（子初換日）</option><option value="00">00:00 換日（午夜換日）</option></select><div class="minor">僅在 23:00–23:59 出生時可能影響結果。</div></div>
+          <div class="hint"><span>※</span><span>目前模型只根據日干決定數字。出生時間用於判斷子時是否換日；性別不影響計算。</span></div>
+          <button class="submit" type="submit">開始推算　↗</button><p class="error" id="error" role="alert" aria-live="polite"></p>
+        </form>
+      </section>
+      <section class="card result-card" id="results" aria-label="計算結果" aria-live="polite">
+        <div class="placeholder" id="placeholder"><div class="seal" aria-hidden="true">甲子</div><h2>等待您的生辰</h2><p>填入出生資料，查看屬於你的宜用數字與避用數字。</p></div>
+        <div id="resultContent" class="hidden">
+          <div class="kicker">02 / 推算結果</div><div class="summary"><div><small id="dateLabel"></small><div><span class="day-stem" id="dayPillar"></span><span id="dayMaster"></span></div></div><span class="pill">十神推演</span></div>
+          <section class="group good-title"><div class="group-head"><h3>宜用數字</h3><small>傳統模型推薦</small></div><div class="digits" id="goodDigits"></div></section>
+          <section class="group bad-title"><div class="group-head"><h3>避用數字</h3><small>傳統模型避開</small></div><div class="digits" id="badDigits"></div></section>
+          <section class="group"><div class="group-head"><h3>未指定數字</h3><small>不等同於凶數</small></div><div class="digits" id="neutralDigits"></div></section>
+          <details class="details"><summary>查看十天干與十神判斷依據</summary><div class="detail-grid" id="detailGrid"></div></details>
+          <div class="actions"><button class="ghost" id="copyBtn" type="button">複製推算結果</button><button class="ghost" id="againBtn" type="button">重新輸入</button></div>
+          <div class="tiny" id="boundaryNote"></div>
+        </div>
+      </section>
+    </div>
+    <section class="below" aria-label="說明">
+      <div class="card info"><h2>演算法怎麼算？</h2><p>先計算國曆日期的六十甲子日柱，再用日干對照十個天干數字（甲 1 至癸 0），依十神分類：</p><ul><li>宜：偏財、正官、正印、食神</li><li>忌：七殺、劫財、傷官</li><li>未指定：正財、偏印、比肩</li></ul></div>
+      <div class="card info"><h2>關於這份研究模型</h2><p>此工具由兩組既有案例逆向歸納，尚未獲得獨立樣本充分驗證，也不能證明是原創命理師的實際公式。</p><p>這是傳統命理文化與程式研究，不具科學預測效力。請勿以此作為醫療、投資、法律或其他重大決策依據。</p></div>
+    </section>
+    <footer class="footer"><span>© UncleLab · 單頁離線應用</span><span>不使用第三方函式庫 · 不收集使用者資料</span></footer>
+  </main>
+  <script>
+    'use strict';
+    // 根據通行的十天干、十二地支序列建立六十甲子日柱。
+    const STEMS = [...'甲乙丙丁戊己庚辛壬癸'];
+    const BRANCHES = [...'子丑寅卯辰巳午未申酉戌亥'];
+    const ELEMENTS = ['木','火','土','金','水'];
+    const GOOD = new Set(['偏財','正官','正印','食神']);
+    const BAD = new Set(['七殺','劫財','傷官']);
+    const $ = id => document.getElementById(id);
+
+    // Gregorian calendar -> Julian Day Number。對應日干支：(JDN + 49) mod 60。
+    // 用整數運算，不解析時區字串，避免瀏覽器所在時區造成日期位移。
+    function julianDayNumber(year, month, day) {
+      const a = Math.floor((14 - month)/12);
+      const y = year + 4800 - a;
+      const m = month + 12*a - 3;
+      return day + Math.floor((153*m+2)/5) + 365*y + Math.floor(y/4)
+        - Math.floor(y/100) + Math.floor(y/400) - 32045;
+    }
+
+    function validateDate(y,m,d) {
+      const dt = new Date(Date.UTC(y,m-1,d));
+      return dt.getUTCFullYear()===y && dt.getUTCMonth()===m-1 && dt.getUTCDate()===d;
+    }
+
+    function getDayPillar(dateString, timeString, boundary) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
+      const tm = /^(\d{2}):(\d{2})$/.exec(timeString);
+      if(!match || !tm) throw new Error('請輸入有效的出生日期與時間。');
+      let [y,m,d] = match.slice(1).map(Number);
+      const h=Number(tm[1]),min=Number(tm[2]);
+      if(y<1900 || y>2100 || !validateDate(y,m,d) || h>23 || min>59) throw new Error('請輸入 1900～2100 年間的有效國曆日期與時間。');
+      const shift = boundary==='23' && h===23;
+      const idx = ((julianDayNumber(y,m,d) + (shift ? 1 : 0) + 49)%60+60)%60;
+      return {pillar:STEMS[idx%10]+BRANCHES[idx%12], stemIndex:idx%10, shift};
+    }
+
+    // 十神關係：同我、我生、我剋、剋我、生我；陰陽相同/相異區分正偏。
+    function tenGod(dayIndex, candidateIndex) {
+      const relation = ((Math.floor(candidateIndex/2)-Math.floor(dayIndex/2)+5)%5);
+      const samePolarity = candidateIndex%2===dayIndex%2;
+      switch(relation){
+        case 0:return samePolarity?'比肩':'劫財';
+        case 1:return samePolarity?'食神':'傷官';
+        case 2:return samePolarity?'偏財':'正財';
+        case 3:return samePolarity?'七殺':'正官';
+        case 4:return samePolarity?'偏印':'正印';
+        default:throw new Error('十神計算異常');
+      }
+    }
+
+    function calculate(stemIndex) {
+      const rows = STEMS.map((stem,i)=>{
+        const god=tenGod(stemIndex,i);
+        const category=GOOD.has(god)?'good':BAD.has(god)?'bad':'neutral';
+        return {number:(i+1)%10,stem,element:ELEMENTS[Math.floor(i/2)],god,category};
+      });
+      return rows;
+    }
+
+    function renderDigits(target, rows, category) {
+      target.replaceChildren();
+      rows.filter(r=>r.category===category).sort((a,b)=>a.number-b.number).forEach(r=>{
+        const tile=document.createElement('div');tile.className='digit '+category;
+        const num=document.createElement('strong');num.textContent=r.number;
+        const cap=document.createElement('small');cap.textContent=r.god;
+        tile.append(num,cap);target.append(tile);
+      });
+    }
+
+    function renderDetails(rows){
+      $('detailGrid').replaceChildren();
+      [...rows].sort((a,b)=>a.number-b.number).forEach(r=>{
+        const cell=document.createElement('div');cell.className='detail-item';
+        const left=document.createElement('span');left.textContent=`${r.number} · ${r.stem}${r.element}`;
+        const right=document.createElement('b');right.textContent=r.god;
+        cell.append(left,right);$('detailGrid').append(cell);
+      });
+    }
+
+    let lastText='';
+    $('birthForm').addEventListener('submit', e=>{
+      e.preventDefault();$('error').textContent='';
+      try{
+        const date=$('birthDate').value,time=$('birthTime').value,boundary=$('boundary').value;
+        const day=getDayPillar(date,time,boundary);const rows=calculate(day.stemIndex);
+        const getNums=category=>rows.filter(r=>r.category===category).map(r=>r.number).sort((a,b)=>a-b).join('、');
+        $('dateLabel').textContent=`${date.replaceAll('-','/')} · ${time}`;
+        $('dayPillar').textContent=day.pillar;
+        $('dayMaster').textContent=`日主 ${STEMS[day.stemIndex]}${ELEMENTS[Math.floor(day.stemIndex/2)]}`;
+        renderDigits($('goodDigits'),rows,'good');renderDigits($('badDigits'),rows,'bad');renderDigits($('neutralDigits'),rows,'neutral');renderDetails(rows);
+        $('boundaryNote').textContent=day.shift?'出生於 23 時後，本次依子初換日使用隔日的日柱。':'本次日柱以國曆日期計算。出生時間不會改變本模型其他判斷。';
+        $('placeholder').classList.add('hidden');$('resultContent').classList.remove('hidden');
+        lastText=`生辰數理研究模型 v0.1\n出生：${date} ${time}\n日柱：${day.pillar}\n宜：${getNums('good')}\n忌：${getNums('bad')}\n未指定：${getNums('neutral')}\n註：研究性候選模型，非已驗證的命運預測。`;
+        if(window.innerWidth<781) $('results').scrollIntoView({behavior:'smooth',block:'start'});
+      }catch(err){$('error').textContent=err.message||'推算失敗，請確認資料。';}
+    });
+    $('copyBtn').addEventListener('click',async()=>{
+      if(!lastText)return;
+      try{await navigator.clipboard.writeText(lastText);$('copyBtn').textContent='已複製';}
+      catch(err){const tmp=document.createElement('textarea');tmp.value=lastText;document.body.append(tmp);tmp.select();const ok=document.execCommand('copy');tmp.remove();$('copyBtn').textContent=ok?'已複製':'無法自動複製';}
+      setTimeout(()=>$('copyBtn').textContent='複製推算結果',1800);
+    });
+    $('againBtn').addEventListener('click',()=>{$('birthForm').reset();$('placeholder').classList.remove('hidden');$('resultContent').classList.add('hidden');$('error').textContent='';$('birthDate').focus();if(window.innerWidth<781) $('birthForm').scrollIntoView({behavior:'smooth'});});
+
+    // 固定回歸測試：三個歷史日柱與兩個已知十神輸出。發現偏差時不中斷使用者介面。
+    (function selfTest(){
+      const cases=[['1983-06-21','庚辰','1,4,6,9','0,3,8'],['1982-05-23','丙午','0,2,5,7','4,6,9'],['2023-11-06','戊辰','2,4,7,9','1,6,8']];
+      for(const [d,p,good,bad] of cases){
+        const x=getDayPillar(d,'12:00','23');const rows=calculate(x.stemIndex);const n=c=>rows.filter(r=>r.category===c).map(r=>r.number).sort((a,b)=>a-b).join(',');
+        if(x.pillar!==p || n('good')!==good || n('bad')!==bad)console.error('Self-test failed',d,x,rows);
+      }
+    })();
+  </script>
+</body>
+</html>
